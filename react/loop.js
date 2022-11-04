@@ -3,24 +3,27 @@ import { calcLoopedSlides } from '../shared/calc-looped-slides.js';
 
 function renderLoop(swiper, slides, swiperParams) {
   const modifiedSlides = slides.map((child, index) => {
-    return React.cloneElement(child, { swiper, 'data-swiper-slide-index': index });
+    return /*#__PURE__*/React.cloneElement(child, {
+      swiper,
+      'data-swiper-slide-index': index
+    });
   });
 
   function duplicateSlide(child, index, position) {
-    return React.cloneElement(child, {
+    return /*#__PURE__*/React.cloneElement(child, {
       key: `${child.key}-duplicate-${index}-${position}`,
-      className: `${child.props.className || ''} ${swiperParams.slideDuplicateClass}`,
+      className: `${child.props.className || ''} ${swiperParams.slideDuplicateClass}`
     });
   }
 
   if (swiperParams.loopFillGroupWithBlank) {
-    const blankSlidesNum =
-      swiperParams.slidesPerGroup - (modifiedSlides.length % swiperParams.slidesPerGroup);
+    const blankSlidesNum = swiperParams.slidesPerGroup - modifiedSlides.length % swiperParams.slidesPerGroup;
+
     if (blankSlidesNum !== swiperParams.slidesPerGroup) {
       for (let i = 0; i < blankSlidesNum; i += 1) {
-        const blankSlide = (
-          <div className={`${swiperParams.slideClass} ${swiperParams.slideBlankClass}`} />
-        );
+        const blankSlide = /*#__PURE__*/React.createElement("div", {
+          className: `${swiperParams.slideClass} ${swiperParams.slideBlankClass}`
+        });
         modifiedSlides.push(blankSlide);
       }
     }
@@ -31,16 +34,15 @@ function renderLoop(swiper, slides, swiperParams) {
   }
 
   const loopedSlides = calcLoopedSlides(modifiedSlides, swiperParams);
-
   const prependSlides = [];
   const appendSlides = [];
+
   for (let i = 0; i < loopedSlides; i += 1) {
     const index = i - Math.floor(i / modifiedSlides.length) * modifiedSlides.length;
     appendSlides.push(duplicateSlide(modifiedSlides[index], i, 'append'));
-    prependSlides.unshift(
-      duplicateSlide(modifiedSlides[modifiedSlides.length - index - 1], i, 'prepend'),
-    );
+    prependSlides.unshift(duplicateSlide(modifiedSlides[modifiedSlides.length - index - 1], i, 'prepend'));
   }
+
   if (swiper) {
     swiper.loopedSlides = loopedSlides;
   }

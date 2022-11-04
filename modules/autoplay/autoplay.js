@@ -1,16 +1,19 @@
 /* eslint no-underscore-dangle: "off" */
+
 /* eslint no-use-before-define: "off" */
 import { getDocument } from 'ssr-window';
 import { nextTick } from '../../shared/utils.js';
-
-export default function Autoplay({ swiper, extendParams, on, emit }) {
+export default function Autoplay({
+  swiper,
+  extendParams,
+  on,
+  emit
+}) {
   let timeout;
-
   swiper.autoplay = {
     running: false,
-    paused: false,
+    paused: false
   };
-
   extendParams({
     autoplay: {
       enabled: false,
@@ -19,8 +22,8 @@ export default function Autoplay({ swiper, extendParams, on, emit }) {
       disableOnInteraction: true,
       stopOnLastSlide: false,
       reverseDirection: false,
-      pauseOnMouseEnter: false,
-    },
+      pauseOnMouseEnter: false
+    }
   });
 
   function run() {
@@ -29,14 +32,18 @@ export default function Autoplay({ swiper, extendParams, on, emit }) {
       swiper.autoplay.paused = false;
       return;
     }
+
     const $activeSlideEl = swiper.slides.eq(swiper.activeIndex);
     let delay = swiper.params.autoplay.delay;
+
     if ($activeSlideEl.attr('data-swiper-autoplay')) {
       delay = $activeSlideEl.attr('data-swiper-autoplay') || swiper.params.autoplay.delay;
     }
+
     clearTimeout(timeout);
     timeout = nextTick(() => {
       let autoplayResult;
+
       if (swiper.params.autoplay.reverseDirection) {
         if (swiper.params.loop) {
           swiper.loopFix();
@@ -46,12 +53,7 @@ export default function Autoplay({ swiper, extendParams, on, emit }) {
           autoplayResult = swiper.slidePrev(swiper.params.speed, true, true);
           emit('autoplay');
         } else if (!swiper.params.autoplay.stopOnLastSlide) {
-          autoplayResult = swiper.slideTo(
-            swiper.slides.length - 1,
-            swiper.params.speed,
-            true,
-            true,
-          );
+          autoplayResult = swiper.slideTo(swiper.slides.length - 1, swiper.params.speed, true, true);
           emit('autoplay');
         } else {
           stop();
@@ -69,12 +71,13 @@ export default function Autoplay({ swiper, extendParams, on, emit }) {
       } else {
         stop();
       }
-      if (swiper.params.cssMode && swiper.autoplay.running) run();
-      else if (autoplayResult === false) {
+
+      if (swiper.params.cssMode && swiper.autoplay.running) run();else if (autoplayResult === false) {
         run();
       }
     }, delay);
   }
+
   function start() {
     if (typeof timeout !== 'undefined') return false;
     if (swiper.autoplay.running) return false;
@@ -83,6 +86,7 @@ export default function Autoplay({ swiper, extendParams, on, emit }) {
     run();
     return true;
   }
+
   function stop() {
     if (!swiper.autoplay.running) return false;
     if (typeof timeout === 'undefined') return false;
@@ -91,47 +95,56 @@ export default function Autoplay({ swiper, extendParams, on, emit }) {
       clearTimeout(timeout);
       timeout = undefined;
     }
+
     swiper.autoplay.running = false;
     emit('autoplayStop');
     return true;
   }
+
   function pause(speed) {
     if (!swiper.autoplay.running) return;
     if (swiper.autoplay.paused) return;
     if (timeout) clearTimeout(timeout);
     swiper.autoplay.paused = true;
+
     if (speed === 0 || !swiper.params.autoplay.waitForTransition) {
       swiper.autoplay.paused = false;
       run();
     } else {
-      ['transitionend', 'webkitTransitionEnd'].forEach((event) => {
+      ['transitionend', 'webkitTransitionEnd'].forEach(event => {
         swiper.$wrapperEl[0].addEventListener(event, onTransitionEnd);
       });
     }
   }
+
   function onVisibilityChange() {
     const document = getDocument();
+
     if (document.visibilityState === 'hidden' && swiper.autoplay.running) {
       pause();
     }
+
     if (document.visibilityState === 'visible' && swiper.autoplay.paused) {
       run();
       swiper.autoplay.paused = false;
     }
   }
+
   function onTransitionEnd(e) {
     if (!swiper || swiper.destroyed || !swiper.$wrapperEl) return;
     if (e.target !== swiper.$wrapperEl[0]) return;
-    ['transitionend', 'webkitTransitionEnd'].forEach((event) => {
+    ['transitionend', 'webkitTransitionEnd'].forEach(event => {
       swiper.$wrapperEl[0].removeEventListener(event, onTransitionEnd);
     });
     swiper.autoplay.paused = false;
+
     if (!swiper.autoplay.running) {
       stop();
     } else {
       run();
     }
   }
+
   function onMouseEnter() {
     if (swiper.params.autoplay.disableOnInteraction) {
       stop();
@@ -140,24 +153,28 @@ export default function Autoplay({ swiper, extendParams, on, emit }) {
       pause();
     }
 
-    ['transitionend', 'webkitTransitionEnd'].forEach((event) => {
+    ['transitionend', 'webkitTransitionEnd'].forEach(event => {
       swiper.$wrapperEl[0].removeEventListener(event, onTransitionEnd);
     });
   }
+
   function onMouseLeave() {
     if (swiper.params.autoplay.disableOnInteraction) {
       return;
     }
+
     swiper.autoplay.paused = false;
     emit('autoplayResume');
     run();
   }
+
   function attachMouseEvents() {
     if (swiper.params.autoplay.pauseOnMouseEnter) {
       swiper.$el.on('mouseenter', onMouseEnter);
       swiper.$el.on('mouseleave', onMouseLeave);
     }
   }
+
   function detachMouseEvents() {
     swiper.$el.off('mouseenter', onMouseEnter);
     swiper.$el.off('mouseleave', onMouseLeave);
@@ -190,27 +207,24 @@ export default function Autoplay({ swiper, extendParams, on, emit }) {
     }
   });
   on('touchEnd', () => {
-    if (
-      swiper.params.cssMode &&
-      swiper.autoplay.paused &&
-      !swiper.params.autoplay.disableOnInteraction
-    ) {
+    if (swiper.params.cssMode && swiper.autoplay.paused && !swiper.params.autoplay.disableOnInteraction) {
       run();
     }
   });
   on('destroy', () => {
     detachMouseEvents();
+
     if (swiper.autoplay.running) {
       stop();
     }
+
     const document = getDocument();
     document.removeEventListener('visibilitychange', onVisibilityChange);
   });
-
   Object.assign(swiper.autoplay, {
     pause,
     run,
     start,
-    stop,
+    stop
   });
 }
